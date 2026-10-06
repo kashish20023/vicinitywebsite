@@ -1,0 +1,9 @@
+Endpoint,Method,SampleCount,MinMs,AvgMs,p50Ms,p95Ms,p99Ms,MaxMs,ErrorRate
+"Health Liveness Probe","GET",100,1,11.66,15,17,18,18,0.0%
+"Explore Workspaces Catalog","GET",100,7,15.41,16,21,28,28,0.0%
+"Workspace Detail by Slug","GET",100,10,16.86,16,27,44,44,0.0%
+"Floor Plan Live Availability","GET",100,9,16.73,16,27,28,28,0.0%
+"Authoritative Price Quote Calculation","POST",100,7,15.27,16,20,34,34,0.0%
+"Member Bookings Stream","GET",100,7,15.62,16,20,23,23,0.0%
+"Admin KPI Dashboard","GET",100,6,15.32,16,18,19,19,0.0%
+"Admin Financial Reconciliation","GET",100,5,15.34,16,19,22,22,0.0%

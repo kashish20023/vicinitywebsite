@@ -1,0 +1,427 @@
+{
+  "project": "Fairbnb",
+  "version": "1.0.0",
+  "description": "Ready-to-use Dummy / Mock Dataset for Fairbnb backend and frontend development",
+  "defaultPassword": "Password123!",
+  "users": [
+    {
+      "id": "usr_admin_1001001001",
+      "name": "Fairbnb System Admin",
+      "email": "admin@fairbnb.com",
+      "phone": "+919876543210",
+      "passwordHash": "$2b$10$GN9D0FDBBP.bjef4GL45ke4u.8vF/SxHUXtcZMnsrgi055H/oTKjG",
+      "role": "ADMIN",
+      "phoneVerified": true,
+      "emailVerified": true,
+      "isActive": true
+    },
+    {
+      "id": "usr_host_2002002002",
+      "name": "Rahul Sharma",
+      "email": "rahul.sharma@fairbnb.com",
+      "phone": "+919811122233",
+      "passwordHash": "$2b$10$GN9D0FDBBP.bjef4GL45ke4u.8vF/SxHUXtcZMnsrgi055H/oTKjG",
+      "role": "HOST",
+      "phoneVerified": true,
+      "emailVerified": true,
+      "isActive": true
+    },
+    {
+      "id": "usr_host_2003003003",
+      "name": "Ananya Roy",
+      "email": "ananya.roy@fairbnb.com",
+      "phone": "+919822233344",
+      "passwordHash": "$2b$10$GN9D0FDBBP.bjef4GL45ke4u.8vF/SxHUXtcZMnsrgi055H/oTKjG",
+      "role": "HOST",
+      "phoneVerified": true,
+      "emailVerified": true,
+      "isActive": true
+    },
+    {
+      "id": "usr_guest_3004004004",
+      "name": "Priya Singh",
+      "email": "priya.singh@example.com",
+      "phone": "+919844455566",
+      "passwordHash": "$2b$10$GN9D0FDBBP.bjef4GL45ke4u.8vF/SxHUXtcZMnsrgi055H/oTKjG",
+      "role": "USER",
+      "phoneVerified": true,
+      "emailVerified": true,
+      "isActive": true
+    },
+    {
+      "id": "usr_guest_3005005005",
+      "name": "Amit Patel",
+      "email": "amit.patel@example.com",
+      "phone": "+919855566677",
+      "passwordHash": "$2b$10$GN9D0FDBBP.bjef4GL45ke4u.8vF/SxHUXtcZMnsrgi055H/oTKjG",
+      "role": "USER",
+      "phoneVerified": true,
+      "emailVerified": true,
+      "isActive": true
+    }
+  ],
+  "properties": [
+    {
+      "id": "prop_goa_villa_001",
+      "slug": "villa-ocean-breeze-calangute",
+      "title": "Villa Ocean Breeze - Calangute Beachfront",
+      "description": "Experience luxury living at Calangute Beachfront with private infinity pool, sea views, and lush tropical gardens. Perfect for family vacations and group retreats.",
+      "shortDescription": "Luxury 4BHK Beachfront Villa with Private Infinity Pool in Goa",
+      "neighborhoodDescription": "Located in vibrant North Goa, 2 minutes walk to Calangute beach, top restaurants, and nightlife.",
+      "aiKnowledgeBasePublic": "Public AI Info: Check-in at 2 PM, Check-out at 11 AM. Breakfast included.",
+      "aiKnowledgeBasePrivate": "Private AI Info: Main gate passcode is 4821. WiFi password is OceanBreeze@2026.",
+      "category": "Villa",
+      "propertyType": "Entire Place",
+      "listingPurpose": "Rent",
+      "address": "House No 45, Cobravaddo, Calangute Beach Road",
+      "locality": "Calangute",
+      "city": "Goa",
+      "state": "Goa",
+      "country": "India",
+      "pincode": 403516,
+      "latitude": 15.5438,
+      "longitude": 73.7554,
+      "maxGuests": 8,
+      "bedrooms": 4,
+      "beds": 4,
+      "bathrooms": 4,
+      "basePrice": 14500.0,
+      "instantBook": true,
+      "totalStock": 1,
+      "minNights": 2,
+      "cancellationPolicy": "FLEXIBLE",
+      "images": [
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750",
+        "https://images.unsplash.com/photo-1613977257363-707ba9348227"
+      ],
+      "gallery": [
+        {
+          "url": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750",
+          "caption": "Pool View"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1613977257363-707ba9348227",
+          "caption": "Living Room"
+        }
+      ],
+      "coverImage": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750",
+      "listingExtras": {
+        "wifi": true,
+        "pool": true,
+        "airConditioning": true,
+        "parking": true,
+        "kitchen": true,
+        "powerBackup": true
+      },
+      "status": "PUBLISHED",
+      "rejectionReason": null,
+      "verificationStatus": "APPROVED",
+      "verificationNote": "Property documents verified by admin",
+      "ownershipProofDocs": [
+        "doc_ownership_proof_001.pdf"
+      ],
+      "pointOfContact": {
+        "name": "Rahul Sharma",
+        "phone": "+919811122233",
+        "role": "Host"
+      },
+      "adminTags": [
+        "featured",
+        "beachfront",
+        "luxury"
+      ],
+      "unavailableDates": [],
+      "icalExportToken": "token_ical_goa_001",
+      "hostId": "usr_host_2002002002",
+      "ownerId": null
+    },
+    {
+      "id": "prop_manali_retreat_002",
+      "slug": "himalayan-cloud-retreat-manali",
+      "title": "Himalayan Cloud Retreat & Spa",
+      "description": "Charming pine wood mountain chalet overlooking snow-capped Himalayan peaks in Old Manali. Features indoor fireplace, private balcony, and organic breakfast.",
+      "shortDescription": "Cosy 3BHK Wooden Chalet with Panoramic Mountain Views",
+      "neighborhoodDescription": "Situated in peaceful Old Manali surrounded by apple orchards and mountain trails.",
+      "aiKnowledgeBasePublic": "Public AI Info: Check-in at 12 PM, Check-out at 10 AM. Heater available in all rooms.",
+      "aiKnowledgeBasePrivate": "Private AI Info: Firewood stored in side shed. WiFi password MountainCloud#99.",
+      "category": "Cottage",
+      "propertyType": "Entire Place",
+      "listingPurpose": "Rent",
+      "address": "Log Huts Area, Old Manali",
+      "locality": "Old Manali",
+      "city": "Manali",
+      "state": "Himachal Pradesh",
+      "country": "India",
+      "pincode": 175131,
+      "latitude": 32.2496,
+      "longitude": 77.1892,
+      "maxGuests": 6,
+      "bedrooms": 3,
+      "beds": 3,
+      "bathrooms": 3,
+      "basePrice": 8900.0,
+      "instantBook": true,
+      "totalStock": 1,
+      "minNights": 1,
+      "cancellationPolicy": "MODERATE",
+      "images": [
+        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb",
+        "https://images.unsplash.com/photo-1510798831971-661eb04b3739"
+      ],
+      "gallery": [
+        {
+          "url": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb",
+          "caption": "Exterior View"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1510798831971-661eb04b3739",
+          "caption": "Cozy Living Room"
+        }
+      ],
+      "coverImage": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb",
+      "listingExtras": {
+        "wifi": true,
+        "fireplace": true,
+        "heating": true,
+        "mountainView": true,
+        "breakfast": true
+      },
+      "status": "PUBLISHED",
+      "rejectionReason": null,
+      "verificationStatus": "APPROVED",
+      "verificationNote": "Verified by admin",
+      "ownershipProofDocs": [
+        "doc_ownership_proof_002.pdf"
+      ],
+      "pointOfContact": {
+        "name": "Rahul Sharma",
+        "phone": "+919811122233",
+        "role": "Host"
+      },
+      "adminTags": [
+        "featured",
+        "mountains",
+        "cozy"
+      ],
+      "unavailableDates": [],
+      "icalExportToken": "token_ical_manali_002",
+      "hostId": "usr_host_2002002002",
+      "ownerId": null
+    },
+    {
+      "id": "prop_jaipur_haveli_003",
+      "slug": "royal-heritage-haveli-jaipur",
+      "title": "The Royal Heritage Haveli",
+      "description": "Authentic 150-year-old restored Rajasthani Haveli with intricate jharokhas, central courtyards, rooftop dining, and evening folk cultural performances.",
+      "shortDescription": "Historic 5BHK Heritage Haveli in Pink City",
+      "neighborhoodDescription": "Located near Johari Bazaar and Hawa Mahal in the heart of Jaipur city centre.",
+      "aiKnowledgeBasePublic": "Public AI Info: Traditional Rajasthani Thali served upon request.",
+      "aiKnowledgeBasePrivate": "Private AI Info: Safe code in master suite is 1234. Host contact on speed dial 1.",
+      "category": "Haveli",
+      "propertyType": "Entire Place",
+      "listingPurpose": "Rent",
+      "address": "12 Heritage Lane, Near Johari Bazaar",
+      "locality": "Pink City",
+      "city": "Jaipur",
+      "state": "Rajasthan",
+      "country": "India",
+      "pincode": 302003,
+      "latitude": 26.9124,
+      "longitude": 75.7873,
+      "maxGuests": 10,
+      "bedrooms": 5,
+      "beds": 6,
+      "bathrooms": 5,
+      "basePrice": 18000.0,
+      "instantBook": false,
+      "totalStock": 1,
+      "minNights": 2,
+      "cancellationPolicy": "STRICT",
+      "images": [
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945",
+        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b"
+      ],
+      "gallery": [
+        {
+          "url": "https://images.unsplash.com/photo-1566073771259-6a8506099945",
+          "caption": "Courtyard"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
+          "caption": "Royal Suite"
+        }
+      ],
+      "coverImage": "https://images.unsplash.com/photo-1566073771259-6a8506099945",
+      "listingExtras": {
+        "wifi": true,
+        "rooftopDining": true,
+        "airConditioning": true,
+        "culturalEvents": true,
+        "parking": true
+      },
+      "status": "PUBLISHED",
+      "rejectionReason": null,
+      "verificationStatus": "APPROVED",
+      "verificationNote": "Heritage document verified",
+      "ownershipProofDocs": [
+        "doc_ownership_proof_003.pdf"
+      ],
+      "pointOfContact": {
+        "name": "Ananya Roy",
+        "phone": "+919822233344",
+        "role": "Host"
+      },
+      "adminTags": [
+        "heritage",
+        "luxury",
+        "culture"
+      ],
+      "unavailableDates": [],
+      "icalExportToken": "token_ical_jaipur_003",
+      "hostId": "usr_host_2003003003",
+      "ownerId": null
+    },
+    {
+      "id": "prop_mumbai_penthouse_004",
+      "slug": "penthouse-sky-lounge-marine-drive",
+      "title": "Penthouse Sky Lounge - Marine Drive",
+      "description": "Ultra-modern penthouse offering breathtaking 270-degree views of the Arabian Sea and Queens Necklace. High-end automation, private terrace jacuzzi, and private chef on request.",
+      "shortDescription": "Ultra Luxury 2BHK Oceanfront Penthouse with Terrace Jacuzzi",
+      "neighborhoodDescription": "Prime South Mumbai location directly on Marine Drive near Nariman Point.",
+      "aiKnowledgeBasePublic": "Public AI Info: Valet parking included. Gym access on 2nd floor.",
+      "aiKnowledgeBasePrivate": "Private AI Info: Smart lock PIN generated dynamically via app.",
+      "category": "Apartment",
+      "propertyType": "Entire Place",
+      "listingPurpose": "Rent",
+      "address": "Floor 18, Sea View Towers, Marine Drive",
+      "locality": "Churchgate",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "country": "India",
+      "pincode": 400020,
+      "latitude": 18.9438,
+      "longitude": 72.8231,
+      "maxGuests": 4,
+      "bedrooms": 2,
+      "beds": 2,
+      "bathrooms": 2,
+      "basePrice": 25000.0,
+      "instantBook": true,
+      "totalStock": 1,
+      "minNights": 1,
+      "cancellationPolicy": "STRICT",
+      "images": [
+        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688",
+        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2"
+      ],
+      "gallery": [
+        {
+          "url": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688",
+          "caption": "Sea View Lounge"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2",
+          "caption": "Master Bedroom"
+        }
+      ],
+      "coverImage": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688",
+      "listingExtras": {
+        "wifi": true,
+        "jacuzzi": true,
+        "seaView": true,
+        "gym": true,
+        "elevator": true,
+        "concierge": true
+      },
+      "status": "PUBLISHED",
+      "rejectionReason": null,
+      "verificationStatus": "APPROVED",
+      "verificationNote": "Property documents verified",
+      "ownershipProofDocs": [
+        "doc_ownership_proof_004.pdf"
+      ],
+      "pointOfContact": {
+        "name": "Ananya Roy",
+        "phone": "+919822233344",
+        "role": "Host"
+      },
+      "adminTags": [
+        "penthouse",
+        "oceanfront",
+        "luxury"
+      ],
+      "unavailableDates": [],
+      "icalExportToken": "token_ical_mumbai_004",
+      "hostId": "usr_host_2003003003",
+      "ownerId": null
+    },
+    {
+      "id": "prop_udaipur_chalet_005",
+      "slug": "serene-lakeview-chalet-udaipur",
+      "title": "Serene Lakeview Chalet",
+      "description": "Tranquil waterfront chalet situated right on the banks of Lake Pichola. Features sunset deck, private boat dock access, and traditional Mewari handcrafted decor.",
+      "shortDescription": "Waterfront 3BHK Cottage on Lake Pichola",
+      "neighborhoodDescription": "Quiet lakeside hamlet 10 minutes from Udaipur City Palace.",
+      "aiKnowledgeBasePublic": "Public AI Info: Boat pick up available from City Palace jetty.",
+      "aiKnowledgeBasePrivate": "Private AI Info: Key box near boat deck, code 5512.",
+      "category": "Cottage",
+      "propertyType": "Entire Place",
+      "listingPurpose": "Rent",
+      "address": "5 Lakefront Road, Pichola",
+      "locality": "Lake Pichola",
+      "city": "Udaipur",
+      "state": "Rajasthan",
+      "country": "India",
+      "pincode": 313001,
+      "latitude": 24.5764,
+      "longitude": 73.6835,
+      "maxGuests": 6,
+      "bedrooms": 3,
+      "beds": 3,
+      "bathrooms": 3,
+      "basePrice": 12500.0,
+      "instantBook": true,
+      "totalStock": 1,
+      "minNights": 1,
+      "cancellationPolicy": "MODERATE",
+      "images": [
+        "https://images.unsplash.com/photo-1587061949409-02df41d5e562"
+      ],
+      "gallery": [
+        {
+          "url": "https://images.unsplash.com/photo-1587061949409-02df41d5e562",
+          "caption": "Lake Sunset View"
+        }
+      ],
+      "coverImage": "https://images.unsplash.com/photo-1587061949409-02df41d5e562",
+      "listingExtras": {
+        "wifi": true,
+        "lakeView": true,
+        "boatDock": true,
+        "airConditioning": true,
+        "kitchen": true
+      },
+      "status": "PUBLISHED",
+      "rejectionReason": null,
+      "verificationStatus": "APPROVED",
+      "verificationNote": "Verified by admin",
+      "ownershipProofDocs": [
+        "doc_ownership_proof_005.pdf"
+      ],
+      "pointOfContact": {
+        "name": "Rahul Sharma",
+        "phone": "+919811122233",
+        "role": "Host"
+      },
+      "adminTags": [
+        "lakeview",
+        "romantic",
+        "peaceful"
+      ],
+      "unavailableDates": [],
+      "icalExportToken": "token_ical_udaipur_005",
+      "hostId": "usr_host_2002002002",
+      "ownerId": null
+    }
+  ]
+}

@@ -1,0 +1,938 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum Role {
+  USER
+  HOST
+  ADMIN
+}
+
+enum UnitType {
+  HOT_DESK
+  DEDICATED_DESK
+  PRIVATE_CABIN
+  MEETING_ROOM
+  CONFERENCE_ROOM
+  EVENT_SPACE
+}
+
+enum UnitStatus {
+  ACTIVE
+  MAINTENANCE
+  DISABLED
+  ARCHIVED
+}
+
+enum PlanType {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum HoldStatus {
+  ACTIVE
+  CONVERTED
+  EXPIRED
+  RELEASED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum RefundStatus {
+  NONE
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum PassStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum IssuePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum SettlementStatus {
+  PENDING_APPROVAL
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+// -----------------------------------------------------------------------------
+// 1. IDENTITY, PROFILES & ROLE-BASED ACCESS CONTROL
+// -----------------------------------------------------------------------------
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String
+  name         String
+  phone        String?     @unique
+  role         Role        @default(USER)
+  avatarUrl    String?
+  companyName  String?
+  gstin        String?
+  billingAddress String?
+  isBlocked    Boolean     @default(false)
+  blockReason  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  adminScope         AdminScope?
+  hostedWorkspaces   Workspace[]           @relation("HostedWorkspaces")
+  bookings           Booking[]
+  inventoryHolds     InventoryHold[]
+  digitalPasses      DigitalPass[]
+  accessSessions     AccessSession[]
+  memberships        Membership[]
+  creditLedgers      CreditLedger[]
+  walletLedgers      WalletLedger[]
+  maintenanceIssues  MaintenanceIssue[]
+  assignedIssues     MaintenanceIssue[]    @relation("AssignedAdmin")
+  supportTickets     SupportTicket[]
+  supportMessages    SupportMessage[]
+  reviews            Review[]
+  wishlists          Wishlist[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  couponUsages       CouponUsage[]
+
+  // FairBnB Role & Communication Extensions
+  payoutRequests         PayoutRequest[]
+  cohostPermissions      CohostPermission[]
+  cohostInvitationsSent  CohostInvitation[]      @relation("HostInvitations")
+  sentChatMessages       ChatMessage[]           @relation("SentChatMessages")
+  receivedChatMessages   ChatMessage[]           @relation("ReceivedChatMessages")
+  disputes               Dispute[]
+  automatedMessageRules  AutomatedMessageRule[]
+
+  @@index([role])
+  @@index([isBlocked])
+}
+
+model AdminScope {
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canManageSpaces    Boolean   @default(true)
+  canManagePricing   Boolean   @default(true)
+  canManageBookings  Boolean   @default(true)
+  canManageFinance   Boolean   @default(true)
+  canManageBeneficiaries Boolean @default(false)
+  canViewReports     Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// 2. WORKSPACES, CAMPUS INFRASTRUCTURE & 2D BLUEPRINTS
+// -----------------------------------------------------------------------------
+
+model Workspace {
+  id           String      @id @default(uuid())
+  slug         String      @unique
+  name         String
+  tagline      String?
+  description  String
+  address      String
+  city         String
+  state        String
+  pincode      String
+  latitude     Float?
+  longitude    Float?
+  timezone     String      @default("Asia/Kolkata")
+  isPublished  Boolean     @default(true)
+  isFeatured   Boolean     @default(false)
+  rating       Float       @default(4.8)
+  reviewCount  Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  hostId       String?
+  host         User?       @relation("HostedWorkspaces", fields: [hostId], references: [id], onDelete: SetNull)
+
+  buildings    Building[]
+  bookingPlans BookingPlan[]
+  media        WorkspaceMedia[]
+  amenities    WorkspaceAmenityItem[]
+  pricingRules PricingRule[]
+  reviews      Review[]
+  issues       MaintenanceIssue[]
+  wishlists    Wishlist[]
+  bookings     Booking[]
+  agreements   SettlementAgreement[]
+
+  // FairBnB Operations Extensions
+  cohostInvitations     CohostInvitation[]
+  cohostPermissions     CohostPermission[]
+  automatedMessageRules AutomatedMessageRule[]
+  chatMessages          ChatMessage[]
+
+  @@index([city, isPublished])
+  @@index([slug])
+  @@index([hostId])
+}
+
+model Building {
+  id          String      @id @default(uuid())
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String      // e.g. "A Tower", "Wing 1"
+  code        String?     // e.g. "T-A"
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  floors      Floor[]
+
+  @@index([workspaceId])
+}
+
+model Floor {
+  id             String         @id @default(uuid())
+  buildingId     String
+  building       Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  floorNumber    Int            // 1, 2, 10
+  name           String         // e.g. "1st Floor", "Executive 10th Floor"
+  activeLayoutId String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  zones          Zone[]
+  units          Unit[]
+  layoutVersions FloorLayoutVersion[]
+
+  @@index([buildingId])
+}
+
+model Zone {
+  id          String      @id @default(uuid())
+  floorId     String
+  floor       Floor       @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  name        String      // "Quiet Zone", "Collab Hub", "Executive Wing"
+  colorHex    String?     @default("#FF007A")
+  createdAt   DateTime    @default(now())
+
+  units       Unit[]
+
+  @@index([floorId])
+}
+
+model Unit {
+  id          String      @id @default(uuid())
+  floorId     String
+  floor       Floor       @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  zoneId      String?
+  zone        Zone?       @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  unitCode    String      // "LH-01-D01", "HT-10-C04"
+  name        String      // "Desk #1", "Glass Cabin 4-Pax"
+  unitType    UnitType
+  capacity    Int         @default(1)
+  status      UnitStatus  @default(ACTIVE)
+
+  // 2D Canvas Geometry & Visual Coordinates
+  x           Float       @default(0)
+  y           Float       @default(0)
+  width       Float       @default(60)
+  height      Float       @default(60)
+  rotation    Float       @default(0)
+  chairSide   String?     @default("top") // "top", "bottom", "left", "right"
+  pricePaise  BigInt?
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  holds       InventoryHold[]
+  bookings    Booking[]
+  issues      MaintenanceIssue[]
+
+  @@unique([floorId, unitCode])
+  @@index([floorId, unitType, status])
+}
+
+model FloorLayoutVersion {
+  id           String      @id @default(uuid())
+  floorId      String
+  floor        Floor       @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  versionNumber Int        @default(1)
+  canvasWidth  Int         @default(1200)
+  canvasHeight Int         @default(700)
+  layoutJson   Json        // Serialized vector blueprint
+  isLive       Boolean     @default(true)
+  publishedById String?
+  createdAt    DateTime    @default(now())
+
+  @@index([floorId, isLive])
+}
+
+model WorkspaceMedia {
+  id          String      @id @default(uuid())
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  url         String
+  caption     String?
+  isHero      Boolean     @default(false)
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+
+  @@index([workspaceId, sortOrder])
+}
+
+model WorkspaceAmenityItem {
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  amenityId   String
+  amenity     Amenity     @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, amenityId])
+}
+
+model Amenity {
+  id          String      @id @default(uuid())
+  code        String      @unique // e.g. "HIGH_SPEED_WIFI", "SPECIALTY_COFFEE"
+  name        String
+  category    String      // "CONNECTIVITY", "COMFORT", "HOSPITALITY", "SECURITY"
+  iconName    String?     // Lucide icon identifier
+  createdAt   DateTime    @default(now())
+
+  workspaces  WorkspaceAmenityItem[]
+}
+
+// -----------------------------------------------------------------------------
+// 3. BOOKING PLANS & PRODUCT TIERS
+// -----------------------------------------------------------------------------
+
+model BookingPlan {
+  id                   String      @id @default(uuid())
+  workspaceId          String
+  workspace            Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  unitType             UnitType
+  planType             PlanType
+  title                String      // e.g. "Day Pass", "Dedicated Resident", "Private Suite"
+  description          String
+  ratePaise            BigInt      // Integer paise (e.g. 49900 = Rs 499)
+  minDurationSlots     Int         @default(1)
+  minCommitmentMonths  Int         @default(0) // 2 for dedicated desks/cabins
+  isActive             Boolean     @default(true)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  bookings             Booking[]
+
+  @@index([workspaceId, unitType, planType, isActive])
+}
+
+// -----------------------------------------------------------------------------
+// 4. TRANSACTIONAL INVENTORY HOLDS (10-MINUTE TTL ANTI-DOUBLE-BOOKING)
+// -----------------------------------------------------------------------------
+
+model InventoryHold {
+  id          String      @id @default(uuid())
+  unitId      String
+  unit        Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startDateTime DateTime
+  endDateTime   DateTime
+  expiresAt   DateTime
+  status      HoldStatus  @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+
+  booking     Booking?
+
+  @@index([unitId, startDateTime, endDateTime, status])
+  @@index([expiresAt, status])
+}
+
+// -----------------------------------------------------------------------------
+// 5. BOOKINGS & FINANCIAL SNAPSHOTS
+// -----------------------------------------------------------------------------
+
+model Booking {
+  id                   String         @id @default(uuid())
+  bookingNumber        String         @unique // "SI-20260922-XXXX"
+  userId               String
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  workspaceId          String
+  workspace            Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  unitId               String
+  unit                 Unit           @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  planId               String
+  plan                 BookingPlan    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  holdId               String?        @unique
+  hold                 InventoryHold? @relation(fields: [holdId], references: [id], onDelete: SetNull)
+
+  startDateTime        DateTime
+  endDateTime          DateTime
+  status               BookingStatus  @default(PENDING_PAYMENT)
+
+  // Authoritative Financial Snapshot in Paise
+  currency             String         @default("INR")
+  baseRatePaise        BigInt
+  durationSlots        Int            @default(1)
+  subtotalPaise        BigInt
+  discountPaise        BigInt         @default(0)
+  couponCode           String?
+  taxPaise             BigInt         @default(0) // 18% GST
+  taxRatePercent       Float          @default(18.0)
+  securityDepositPaise BigInt         @default(0)
+  totalAmountPaise     BigInt
+
+  // Cancellation & Refund Fields
+  cancelledAt          DateTime?
+  cancellationReason   String?
+  refundStatus         RefundStatus   @default(NONE)
+  refundAmountPaise    BigInt         @default(0)
+
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  paymentOrder         PaymentOrder?
+  digitalPass          DigitalPass?
+  reviews              Review[]
+  issues               MaintenanceIssue[]
+  supportTickets       SupportTicket[]
+  couponUsages         CouponUsage[]
+
+  // Operations extensions
+  disputes             Dispute[]
+  chatMessages         ChatMessage[]
+
+  @@index([userId, status])
+  @@index([workspaceId, startDateTime, endDateTime])
+  @@index([unitId, startDateTime, endDateTime])
+}
+
+// -----------------------------------------------------------------------------
+// 6. PAYMENTS & ORDER LEDGER
+// -----------------------------------------------------------------------------
+
+model PaymentOrder {
+  id                   String        @id @default(uuid())
+  bookingId            String        @unique
+  booking              Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  orderNumber          String        @unique // "ORD-SI-20260922-XXXX"
+  amountPaise          BigInt
+  currency             String        @default("INR")
+  status               PaymentStatus @default(PENDING)
+  provider             String        @default("MOCK_GATEWAY")
+  providerOrderId      String?       @unique
+  providerPaymentId    String?       @unique
+  providerSignature    String?
+  verifiedAt           DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  refunds              RefundRecord[]
+
+  @@index([status])
+}
+
+model RefundRecord {
+  id               String       @id @default(uuid())
+  paymentOrderId   String
+  paymentOrder     PaymentOrder @relation(fields: [paymentOrderId], references: [id], onDelete: Cascade)
+  amountPaise      BigInt
+  reason           String
+  providerRefundId String?
+  status           RefundStatus @default(PENDING)
+  createdAt        DateTime     @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// 7. DIGITAL ACCESS PASSES & RECEPTION QR SESSIONS
+// -----------------------------------------------------------------------------
+
+model DigitalPass {
+  id               String          @id @default(uuid())
+  bookingId        String          @unique
+  booking          Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passCode         String          @unique // "SI-PASS-XXXXXXXXXXXXXXXX"
+  qrToken          String          @unique
+  status           PassStatus      @default(ACTIVE)
+  validFrom        DateTime
+  validUntil       DateTime
+  securityCode     String          // 4-digit PIN for reception backup
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  sessions         AccessSession[]
+
+  @@index([qrToken])
+  @@index([userId, status])
+}
+
+model AccessSession {
+  id            String       @id @default(uuid())
+  passId        String
+  pass          DigitalPass  @relation(fields: [passId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkInAt     DateTime     @default(now())
+  checkOutAt    DateTime?
+  terminalId    String?      // e.g. "LEHARIYA-RECEPTION-GATE-01"
+  operatorName  String?
+
+  @@index([passId, checkInAt])
+}
+
+// -----------------------------------------------------------------------------
+// 8. FAIRBNB EXTENSIONS: CO-HOSTING, HOST SETTLEMENTS & PAYOUTS
+// -----------------------------------------------------------------------------
+
+model CohostInvitation {
+  id              String    @id @default(uuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  hostId          String
+  host            User      @relation("HostInvitations", fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Invitee Contact Details (stored at time of invite, in case they don't have an account yet)
+  inviteeEmail    String
+  inviteeName     String?   // Optional display name provided by host when inviting
+  inviteeMobileNo String?   // Optional mobile number provided by host when inviting
+
+  token           String    @unique
+  permissions     Json      // { canManageListing, canViewFinances, canManageBookings, canManageCalendar, canManageMaintenance, canMessageGuests }
+  status          String    @default("PENDING") // PENDING, ACCEPTED, DECLINED, EXPIRED
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+
+  @@index([workspaceId])
+  @@index([token])
+}
+
+model CohostPermission {
+  id                   String    @id @default(uuid())
+  workspaceId          String
+  workspace            Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Co-Host Contact Details (denormalized for quick access without joining User table)
+  name                 String?
+  email                String?
+  mobileNo             String?
+
+  // Granular Permission Flags
+  canManageListing     Boolean   @default(true)
+  canViewFinances      Boolean   @default(false)
+  canManageBookings    Boolean   @default(true)
+  canManageCalendar    Boolean   @default(true)
+  canManageMaintenance Boolean   @default(true)
+  canMessageGuests     Boolean   @default(true)
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([workspaceId, userId])
+}
+
+model PayoutRequest {
+  id          String    @id @default(uuid())
+  hostId      String
+  host        User      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  amountPaise BigInt
+  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED, PROCESSED
+  bankAccount String?
+  notes       String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([hostId, status])
+}
+
+// -----------------------------------------------------------------------------
+// 9. MEMBER COMMUNICATIONS, DISPUTES & BANNERS
+// -----------------------------------------------------------------------------
+
+model ChatMessage {
+  id          String     @id @default(uuid())
+  senderId    String
+  sender      User       @relation("SentChatMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId  String
+  receiver    User       @relation("ReceivedChatMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  bookingId   String?
+  booking     Booking?   @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  message     String
+  isRead      Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+
+  @@index([senderId, receiverId])
+  @@index([workspaceId])
+}
+
+model Dispute {
+  id                   String    @id @default(uuid())
+  bookingId            String
+  booking              Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  raisedById           String
+  raisedBy             User      @relation(fields: [raisedById], references: [id], onDelete: Cascade)
+  reason               String
+  description          String
+  status               String    @default("OPEN") // OPEN, UNDER_REVIEW, RESOLVED, REJECTED
+  refundRequestedPaise BigInt?
+  resolutionNotes      String?
+  resolvedAt           DateTime?
+  createdAt            DateTime  @default(now())
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+model Banner {
+  id          String    @id @default(uuid())
+  title       String
+  subtitle    String?
+  ctaText     String?
+  ctaLink     String?
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  priority    Int       @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([isActive, priority])
+}
+
+model AutomatedMessageRule {
+  id            String    @id @default(uuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  hostId        String
+  host          User      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  triggerEvent  String    // ON_BOOKING_CONFIRMED, 24H_BEFORE_ACCESS, ON_CHECKOUT
+  messageBody   String
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  @@index([workspaceId, triggerEvent])
+}
+
+// -----------------------------------------------------------------------------
+// 10. PRICING RULES, COUPONS & MEMBERSHIP TIERS
+// -----------------------------------------------------------------------------
+
+model PricingRule {
+  id           String    @id @default(uuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name         String
+  unitType     UnitType?
+  multiplier   Float     @default(1.0)
+  startDate    DateTime?
+  endDate      DateTime?
+  daysOfWeek   Int[]
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  @@index([workspaceId, isActive])
+}
+
+model Coupon {
+  id               String        @id @default(uuid())
+  code             String        @unique
+  discountPercent  Float
+  maxDiscountPaise BigInt?
+  minOrderPaise    BigInt?
+  isActive         Boolean       @default(true)
+  usageLimit       Int?
+  usageCount       Int           @default(0)
+  expiresAt        DateTime?
+  createdAt        DateTime      @default(now())
+
+  usages           CouponUsage[]
+}
+
+model CouponUsage {
+  id        String   @id @default(uuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  usedAt    DateTime @default(now())
+
+  @@unique([couponId, bookingId])
+}
+
+model MembershipPlan {
+  id                String       @id @default(uuid())
+  name              String
+  description       String?
+  pricePaise        BigInt
+  durationMonths    Int          @default(1)
+  monthlyCredits    Int          @default(5)
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+
+  memberships       Membership[]
+}
+
+model Membership {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId      String
+  plan        MembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean        @default(true)
+  autoRenew   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model CreditLedger {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditsDelta Int
+  balanceAfter Int
+  reason      String
+  referenceId String?
+  createdAt   DateTime   @default(now())
+
+  @@index([userId])
+}
+
+model WalletLedger {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountPaiseDelta BigInt
+  balanceAfter BigInt
+  reason      String
+  referenceId String?
+  createdAt   DateTime   @default(now())
+
+  @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// 11. OPERATIONS: MAINTENANCE, SUPPORT, REVIEWS & AUDIT
+// -----------------------------------------------------------------------------
+
+model MaintenanceIssue {
+  id            String        @id @default(uuid())
+  workspaceId   String
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  unitId        String?
+  unit          Unit?         @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  reportedById  String
+  reportedBy    User          @relation(fields: [reportedById], references: [id], onDelete: Cascade)
+  assignedToId  String?
+  assignedTo    User?         @relation("AssignedAdmin", fields: [assignedToId], references: [id], onDelete: SetNull)
+  bookingId     String?
+  booking       Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  category      String
+  priority      IssuePriority @default(MEDIUM)
+  status        IssueStatus   @default(OPEN)
+  title         String
+  description   String
+  photoUrl      String?
+  resolutionNotes String?
+  resolvedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([workspaceId, status])
+}
+
+model SupportTicket {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookingId   String?
+  booking     Booking?     @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  subject     String
+  category    String
+  status      TicketStatus @default(OPEN)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  messages    SupportMessage[]
+}
+
+model SupportMessage {
+  id          String        @id @default(uuid())
+  ticketId    String
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  message     String
+  isAdminReply Boolean      @default(false)
+  createdAt   DateTime      @default(now())
+}
+
+model Review {
+  id          String     @id @default(uuid())
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookingId   String?
+  booking     Booking?   @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  rating      Int
+  comment     String?
+  isVerified  Boolean    @default(true)
+  isPublished Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+
+  @@index([workspaceId, rating])
+}
+
+model Wishlist {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+
+  @@unique([userId, workspaceId])
+}
+
+model Notification {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  body        String
+  category    String
+  isRead      Boolean    @default(false)
+  linkUrl     String?
+  createdAt   DateTime   @default(now())
+
+  @@index([userId, isRead])
+}
+
+model AuditLog {
+  id          String     @id @default(uuid())
+  userId      String?
+  user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String
+  targetType  String
+  targetId    String?
+  details     Json?
+  ipAddress   String?
+  createdAt   DateTime   @default(now())
+
+  @@index([action])
+  @@index([targetType, targetId])
+}
+
+model SystemSetting {
+  key         String     @id
+  value       String
+  description String?
+  updatedAt   DateTime   @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// 12. CONDITIONAL BENEFICIARY SETTLEMENTS (DISABLED BY DEFAULT)
+// -----------------------------------------------------------------------------
+
+model Beneficiary {
+  id          String     @id @default(uuid())
+  legalName   String
+  email       String
+  phone       String?
+  panNumber   String?
+  bankAccount String?
+  ifscCode    String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+
+  agreements  SettlementAgreement[]
+}
+
+model SettlementAgreement {
+  id              String       @id @default(uuid())
+  beneficiaryId   String
+  beneficiary     Beneficiary  @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  workspaceId     String
+  workspace       Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  commissionRate  Float
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+
+  allocations     SettlementAllocation[]
+}
+
+model SettlementAllocation {
+  id                  String              @id @default(uuid())
+  agreementId         String
+  agreement           SettlementAgreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  bookingId           String
+  allocatedPaise      BigInt
+  status              SettlementStatus    @default(PENDING_APPROVAL)
+  transferIntents     TransferIntent[]
+  createdAt           DateTime            @default(now())
+}
+
+model TransferIntent {
+  id                  String                @id @default(uuid())
+  allocationId        String
+  allocation          SettlementAllocation  @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  amountPaise         BigInt
+  providerTransferId  String?
+  status              String                @default("SIMULATED_PENDING")
+  createdAt           DateTime              @default(now())
+}

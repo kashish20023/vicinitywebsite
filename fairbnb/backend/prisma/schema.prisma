@@ -1,0 +1,1258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  HOST
+  ADMIN
+}
+
+model User {
+  id                  String          @id @default(uuid())
+  name                String
+  email               String?         @unique
+  phone               String          @unique
+  passwordHash        String
+
+  role                UserRole        @default(USER)
+
+  phoneVerified       Boolean         @default(false)
+  emailVerified       Boolean         @default(false)
+
+  isActive            Boolean         @default(true)
+  isSuperhost         Boolean         @default(false)
+  blockReason         String?
+
+  kycStatus           String          @default("PENDING")
+  kycDocumentUrl      String?
+  kycNote             String?
+
+  coHostCode          String?         @unique
+  verifiedById        String?
+  verifiedAt          DateTime?
+
+  // Profile extension fields
+  avatarUrl           String?
+  bio                 String?
+  emergencyContact    Json?
+  preferredCurrency   String          @default("INR")
+  preferredLanguage   String          @default("en")
+
+  // OTP fields for phone verification
+  phoneOtpHash        String?
+  phoneOtpExpiresAt   DateTime?
+  otpFailedAttempts   Int             @default(0)
+  otpLockUntil        DateTime?
+
+  // Password reset fields
+  resetTokenHash      String?
+  resetTokenExpiresAt DateTime?
+
+  // Relations
+  properties          Property[]
+  bookings            Booking[]       @relation("GuestBookings")
+  processedRefunds    Refund[]        @relation("ProcessedRefunds")
+  payoutRequests      PayoutRequest[]
+  reviewsGiven        Review[]        @relation("UserReviews")
+  sentAdminMessages   AdminMessage[]  @relation("SentAdminMessages")
+  receivedAdminMessages AdminMessage[]@relation("ReceivedAdminMessages")
+
+  // New Module Relations
+  wishlists             Wishlist[]
+  notifications         Notification[]
+  sentChatMessages      ChatMessage[]         @relation("SentChatMessages")
+  receivedChatMessages  ChatMessage[]         @relation("ReceivedChatMessages")
+  maintenanceRequests   MaintenanceRequest[]
+  disputes              Dispute[]
+  automatedMessageRules AutomatedMessageRule[]
+
+  // Co-Host Relations
+  coHostRelationships     CoHostRelationship[]   @relation("UserCoHostRelationships")
+  hostedCoHostShips       CoHostRelationship[]   @relation("PropertyHostCoHosts")
+  sentCoHostInvitations   CoHostInvitation[]     @relation("SentCoHostInvitations")
+  payoutRules             PayoutRule[]           @relation("UserPayoutRules")
+  financialTransactions   FinancialTransaction[] @relation("ReceivedFinancialTransactions")
+  settlementAllocations   SettlementAllocation[]
+  transferIntents         PayoutTransferIntent[]
+
+  // Reels Relations
+  reels                   Reel[]                 @relation("CreatedReels")
+  reelLikes               ReelLike[]             @relation("UserReelLikes")
+  reelComments            ReelComment[]          @relation("UserReelComments")
+  reelReports             ReelReport[]           @relation("UserReelReports")
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+}
+
+model AdminMessage {
+  id          String   @id @default(uuid())
+  senderId    String
+  sender      User     @relation("SentAdminMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User     @relation("ReceivedAdminMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  subject     String
+  content     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Property {
+  id                      String     @id @default(uuid())
+  title                   String
+  description             String
+  shortDescription        String?
+  neighborhoodDescription String?
+  aiKnowledgeBasePublic   String?
+  aiKnowledgeBasePrivate  String?
+
+  category                String
+  propertyType            String
+  listingPurpose          String
+
+  address                 String?
+  locality                String?
+  city                    String
+  state                   String
+  country                 String
+  pincode                 Int?
+  latitude                Float?
+  longitude               Float?
+
+  wifiNetwork             String?
+  wifiPassword            String?
+  checkInInstructions     String?
+  houseRules              String[]   @default([])
+
+  maxGuests               Int
+  bedrooms                Int
+  beds                    Int
+  bathrooms               Int
+
+  basePrice               Float
+  cleaningFee             Float      @default(0)
+  serviceFeeRate          Float      @default(0.10)
+  taxRate                 Float      @default(0.18)
+  instantBook             Boolean
+  totalStock              Int
+  minNights               Int
+  cancellationPolicy      String
+
+  images                  String[]
+  gallery                 Json
+  coverImage              String?
+  listingExtras           Json
+
+  status                  String
+  rejectionReason         String?
+  verificationStatus      String
+  verificationNote        String?
+  ownershipProofDocs      String[]
+  pointOfContact          Json?
+  slug                    String     @unique
+  adminTags               String[]
+  unavailableDates        DateTime[]
+  icalExportToken         String?
+
+  hostId                  String
+  host                    User?      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  ownerId                 String?
+
+  bookings                Booking[]
+  reviews                 Review[]
+
+  // New Module Relations
+  wishlists               Wishlist[]
+  customPricingRules      CustomPricingRule[]
+  chatMessages            ChatMessage[]
+  maintenanceRequests     MaintenanceRequest[]
+  automatedMessageRules   AutomatedMessageRule[]
+  externalIcalFeeds       ExternalIcalFeed[]
+  coHostRelationships     CoHostRelationship[]
+  coHostInvitations       CoHostInvitation[]
+  payoutRules             PayoutRule[]
+  financialTransactions   FinancialTransaction[]
+  amenities               PropertyAmenity[]
+  reelListings            ReelListing[]
+
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+}
+
+model Booking {
+  id              String    @id @default(uuid())
+
+  propertyId      String
+  property        Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  guestId         String
+  guest           User      @relation("GuestBookings", fields: [guestId], references: [id], onDelete: Cascade)
+
+  checkIn         DateTime
+  checkOut        DateTime
+
+  nights          Int       @default(1)
+  baseAmount      Float?    @default(0)
+  cleaningFee     Float?    @default(0)
+  serviceFee      Float?    @default(0)
+  taxAmount       Float?    @default(0)
+  totalAmount     Float
+  currency        String    @default("INR")
+  guests          Int       @default(1)
+
+  status          String    @default("CONFIRMED")
+  paymentStatus   String    @default("PAID")
+
+  paymentId       String?
+  externalId      String?
+  source          String?
+  bookingType     String?
+  variantId       String?
+
+  couponCode      String?
+  discountAmount  Float?    @default(0)
+
+  expiresAt       DateTime?
+  icalLinkId      String?
+
+  refundStatus    String?
+  payoutStatus    String?
+
+  cancellation    Json?
+
+  rescheduleRequest Json?
+  isNoShow          Boolean   @default(false)
+
+  payments        Payment[]
+  invoices        Invoice[]
+  refunds         Refund[]
+  review          Review?
+
+  // New Module Relations
+  chatMessages        ChatMessage[]
+  maintenanceRequests MaintenanceRequest[]
+  disputes            Dispute[]
+  financeSnapshot     BookingFinanceSnapshot?
+  financialTransactions FinancialTransaction[]
+  settlement          Settlement?
+  auditEvents         FinancialAuditEvent[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([propertyId])
+  @@index([guestId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([checkIn])
+  @@index([checkOut])
+  @@index([createdAt])
+}
+
+model Review {
+  id                 String    @id @default(uuid())
+
+  bookingId          String    @unique
+  booking            Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  propertyId         String
+  property           Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  reviewerId         String
+  reviewer           User      @relation("UserReviews", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  rating             Float
+  cleanlinessRating  Float     @default(5.0)
+  accuracyRating     Float     @default(5.0)
+  locationRating     Float     @default(5.0)
+  valueRating        Float     @default(5.0)
+
+  comment            String
+  hostReply          String?
+  hostRepliedAt      DateTime?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([propertyId])
+  @@index([reviewerId])
+}
+
+model Payment {
+  id                 String    @id @default(uuid())
+
+  bookingId          String
+  booking            Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  amount             Float
+  currency           String    @default("INR")
+
+  provider           String    @default("MOCK_RAZORPAY")
+  providerPaymentId  String?
+  providerOrderId    String?
+  providerSignature  String?
+
+  status             String    @default("PENDING")
+
+  paidAt             DateTime?
+  failureReason      String?
+
+  idempotencyKey     String?   @unique
+
+  refunds            Refund[]
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([providerPaymentId])
+}
+
+model Refund {
+  id              String    @id @default(uuid())
+
+  bookingId       String
+  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  paymentId       String?
+  payment         Payment?  @relation(fields: [paymentId], references: [id])
+
+  amount          Float
+  amountPaise     BigInt?
+  reason          String?
+
+  status          String    @default("PENDING")
+  reservationStatus String  @default("COMPLETED") // RESERVED, PENDING_PROVIDER, COMPLETED, FAILED, UNKNOWN
+  reviewStatus    String    @default("VALID")     // VALID, NEEDS_REVIEW
+
+  paymentRefundId String?
+  idempotencyKey  String?   @unique
+  operationReference String? @unique
+
+  processedById   String?
+  processedBy     User?     @relation("ProcessedRefunds", fields: [processedById], references: [id])
+
+  requestedAt     DateTime  @default(now())
+  processedAt     DateTime?
+
+  failureReason   String?
+
+  components      RefundComponent[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([operationReference])
+}
+
+model Invoice {
+  id              String   @id @default(uuid())
+
+  bookingId       String
+  booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  invoiceNumber   String   @unique
+  amount          Float
+  status          String   @default("PAID")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([bookingId])
+}
+
+model PayoutRequest {
+  id              String   @id @default(uuid())
+
+  hostId          String
+  host            User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  amount          Float
+  status          String   @default("PENDING")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([hostId])
+}
+
+// NEW FEATURE MODELS
+
+model Wishlist {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  properties  Property[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  message     String
+  type        String   @default("SYSTEM") // BOOKING, MESSAGE, SYSTEM, DISPUTE
+  isRead      Boolean  @default(false)
+  metadata    Json?
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model CustomPricingRule {
+  id            String   @id @default(uuid())
+  propertyId    String
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  startDate     DateTime
+  endDate       DateTime
+  pricePerNight Float
+  note          String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+model ChatMessage {
+  id          String    @id @default(uuid())
+  senderId    String
+  sender      User      @relation("SentChatMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  recipientId String
+  recipient   User      @relation("ReceivedChatMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  bookingId   String?
+  booking     Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  content     String
+  isRead      Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+
+  @@index([senderId])
+  @@index([recipientId])
+}
+
+model MaintenanceRequest {
+  id             String    @id @default(uuid())
+  propertyId     String
+  property       Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  bookingId      String?
+  booking        Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  reportedById   String
+  reportedBy     User      @relation(fields: [reportedById], references: [id], onDelete: Cascade)
+
+  title          String
+  description    String
+  priority       String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status         String    @default("PENDING") // PENDING, IN_PROGRESS, RESOLVED, CANCELLED
+  resolutionNote String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([propertyId])
+}
+
+model Coupon {
+  id                String   @id @default(uuid())
+  code              String   @unique
+  discountType      String   @default("PERCENTAGE") // PERCENTAGE, FLAT
+  discountValue     Float
+  minOrderAmount    Float    @default(0)
+  maxDiscountAmount Float?
+
+  validFrom         DateTime @default(now())
+  validUntil        DateTime
+  usageLimit        Int      @default(100)
+  timesUsed         Int      @default(0)
+  isActive          Boolean  @default(true)
+
+  banners           Banner[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Banner {
+  id           String    @id @default(uuid())
+  title        String?
+  description  String?
+  imageUrl     String?
+  linkUrl      String?
+  couponId     String?
+  coupon       Coupon?   @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  isActive     Boolean   @default(true)
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  triggerType  String    @default("delay")
+  triggerValue Int       @default(5)
+  actionType   String    @default("form")
+  targetPages  String[]  @default([])
+  views        Int       @default(0)
+  submissions  Int       @default(0)
+  leads        Lead[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Lead {
+  id         String   @id @default(uuid())
+  name       String
+  phone      String
+  email      String?
+  bannerId   String?
+  banner     Banner?  @relation(fields: [bannerId], references: [id], onDelete: SetNull)
+  couponCode String?
+
+  createdAt  DateTime @default(now())
+}
+
+model Dispute {
+  id               String   @id @default(uuid())
+  bookingId        String
+  booking          Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  raisedById       String
+  raisedBy         User     @relation(fields: [raisedById], references: [id], onDelete: Cascade)
+
+  reason           String
+  evidenceUrls     String[] @default([])
+  status           String   @default("OPEN") // OPEN, UNDER_REVIEW, RESOLVED_REFUND_GUEST, RESOLVED_PAY_HOST, DISMISSED
+  adminNotes       String?
+  payoutAdjustment Float    @default(0)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([bookingId])
+}
+
+model AutomatedMessageRule {
+  id           String    @id @default(uuid())
+  hostId       String
+  host         User      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  propertyId   String?
+  property     Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  triggerEvent String    // CHECKIN_24H_BEFORE, CHECKOUT_AFTER, BOOKING_CONFIRMED
+  templateText String
+  isActive     Boolean   @default(true)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([hostId])
+}
+
+model ExternalIcalFeed {
+  id           String    @id @default(uuid())
+  propertyId   String
+  property     Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  name         String
+  url          String
+  lastSyncedAt DateTime?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([propertyId])
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String
+  actorRole   String
+  action      String
+  entityType  String
+  entityId    String?
+  ipAddress   String?
+  details     Json?
+
+  createdAt   DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+}
+
+// CO-HOST ARCHITECTURE MODELS
+
+enum CoHostStatus {
+  INVITED
+  ACCEPTED
+  VERIFICATION_PENDING
+  VERIFIED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum CoHostInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+enum PayoutRuleStatus {
+  PENDING_CONFIRMATION
+  ACTIVE
+  INACTIVE
+  REJECTED
+}
+
+enum CoHostPermissionEnum {
+  VIEW_PROPERTY
+  EDIT_LISTING
+  VIEW_CALENDAR
+  MANAGE_CALENDAR
+  VIEW_BOOKINGS
+  MANAGE_BOOKINGS
+  CANCEL_BOOKINGS
+  VIEW_GUESTS
+  MESSAGE_GUESTS
+  VIEW_PRICING
+  MANAGE_PRICING
+  MANAGE_MAINTENANCE
+  MANAGE_CLEANING
+  VIEW_REVIEWS
+  RESPOND_TO_REVIEWS
+  MANAGE_COUPONS
+  VIEW_COHOSTS
+  MANAGE_COHOSTS
+  VIEW_EARNINGS
+  VIEW_PAYOUTS
+  MANAGE_PAYOUT_SETTINGS
+}
+
+model CoHostRelationship {
+  id              String             @id @default(uuid())
+  propertyId      String
+  property        Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  hostUserId      String
+  hostUser        User               @relation("PropertyHostCoHosts", fields: [hostUserId], references: [id], onDelete: Cascade)
+
+  coHostUserId    String
+  coHostUser      User               @relation("UserCoHostRelationships", fields: [coHostUserId], references: [id], onDelete: Cascade)
+
+  status          CoHostStatus       @default(ACCEPTED)
+  permissionLevel String?
+
+  invitedAt       DateTime           @default(now())
+  acceptedAt      DateTime?
+  verifiedAt      DateTime?
+  suspendedAt     DateTime?
+  removedAt       DateTime?
+
+  revokedById     String?
+  revocationReason String?
+
+  permissions     CoHostPermission[]
+  payoutRules     PayoutRule[]
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([propertyId, coHostUserId])
+  @@index([propertyId])
+  @@index([coHostUserId])
+  @@index([hostUserId])
+  @@index([status])
+}
+
+model CoHostPermission {
+  id                   String               @id @default(uuid())
+  coHostRelationshipId String
+  coHostRelationship   CoHostRelationship   @relation(fields: [coHostRelationshipId], references: [id], onDelete: Cascade)
+
+  permission           CoHostPermissionEnum
+
+  createdAt            DateTime             @default(now())
+
+  @@unique([coHostRelationshipId, permission])
+  @@index([coHostRelationshipId])
+}
+
+model CoHostInvitation {
+  id                   String                 @id @default(uuid())
+  propertyId           String
+  property             Property               @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  invitedById          String
+  invitedBy            User                   @relation("SentCoHostInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  email                String?
+  phone                String?
+  tokenHash            String                 @unique
+  requestedPermissions CoHostPermissionEnum[] @default([])
+  permissionLevel      String?
+  payoutConfig         Json?
+
+  status               CoHostInvitationStatus @default(PENDING)
+  expiresAt            DateTime
+  acceptedAt           DateTime?
+  declinedAt           DateTime?
+
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  @@index([propertyId])
+  @@index([email])
+  @@index([phone])
+  @@index([tokenHash])
+}
+
+model PayoutRule {
+  id                   String              @id @default(uuid())
+  propertyId           String
+  property             Property            @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  recipientUserId      String
+  recipientUser        User                @relation("UserPayoutRules", fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  coHostRelationshipId String?
+  coHostRelationship   CoHostRelationship? @relation(fields: [coHostRelationshipId], references: [id], onDelete: Cascade)
+
+  type                 String
+  percentage           Float?
+  fixedAmount          Float?
+  status               PayoutRuleStatus    @default(PENDING_CONFIRMATION)
+
+  effectiveFrom        DateTime            @default(now())
+  effectiveTo          DateTime?
+
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([propertyId])
+  @@index([recipientUserId])
+  @@index([coHostRelationshipId])
+}
+
+model FinancialTransaction {
+  id          String    @id @default(uuid())
+  bookingId   String?
+  booking     Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  type        String
+  amount      Float
+  currency    String    @default("INR")
+
+  recipientId String?
+  recipient   User?     @relation("ReceivedFinancialTransactions", fields: [recipientId], references: [id], onDelete: SetNull)
+
+  status      String    @default("COMPLETED")
+  metadata    Json?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([bookingId])
+  @@index([propertyId])
+  @@index([recipientId])
+  @@index([type])
+}
+
+model Tag {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  icon          String?
+  color         String?
+  description   String?
+  propertyOrder String[] @default([])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Amenity {
+  id         String            @id @default(uuid())
+  name       String            @unique
+  icon       String?
+  category   String?
+  properties PropertyAmenity[]
+}
+
+model PropertyAmenity {
+  propertyId String
+  amenityId  String
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenity  Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
+}
+
+model BookingFinanceSnapshot {
+  id                      String    @id @default(uuid())
+
+  bookingId               String    @unique
+  booking                 Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  snapshotVersion         Int       @default(1)
+  capturedAt              DateTime  @default(now())
+  captureProvenance       String    @default("BOOKING_CREATION")
+  currency                String    @default("INR")
+
+  basePaise               BigInt?
+  cleaningPaise           BigInt?
+  serviceFeePaise         BigInt?
+  taxPaise                BigInt?
+  discountPaise           BigInt?
+  guestTotalPaise         BigInt?
+
+  hostUserId              String
+  propertyId              String
+
+  discountFunding         String    @default("UNRESOLVED") // NONE, PLATFORM, HOST, UNRESOLVED
+
+  coHostAgreementStatus   String    @default("UNRESOLVED") // NONE, AGREED, UNRESOLVED
+  coHostRecipientUserId   String?
+  coHostRuleId            String?
+  coHostRuleType          String?
+  coHostPercentageBps     BigInt?
+  coHostFixedPaise        BigInt?
+  coHostRuleTerms         Json?
+
+  policyVersion           String    @default("DRAFT_V1")
+  reviewStatus            String    @default("NEEDS_REVIEW") // VALID, NEEDS_REVIEW
+  reviewReasons           String[]  @default([])
+
+  sourceData              Json?
+
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([hostUserId])
+  @@index([propertyId])
+  @@index([reviewStatus])
+}
+
+model RefundComponent {
+  id                  String    @id @default(uuid())
+
+  refundId            String
+  refund              Refund    @relation(fields: [refundId], references: [id], onDelete: Cascade)
+
+  accommodationPaise  BigInt    @default(0)
+  cleaningPaise       BigInt    @default(0)
+  platformPaise       BigInt    @default(0)
+  taxPaise            BigInt    @default(0)
+  totalPaise          BigInt
+
+  isVerified          Boolean   @default(true)
+  reviewStatus        String    @default("VALID") // VALID, NEEDS_REVIEW
+  reviewReasons       String[]  @default([])
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([refundId])
+  @@index([reviewStatus])
+}
+
+model Settlement {
+  id                  String    @id @default(uuid())
+
+  bookingId           String    @unique
+  booking             Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  status              String    @default("PENDING") // PENDING, READY, HELD, PROCESSING, PARTIALLY_SETTLED, SETTLED, CANCELLED
+  holdReasons         String[]  @default([])
+  currency            String    @default("INR")
+
+  currentRevisionId   String?
+
+  revisions           SettlementRevision[]
+  transferIntents     PayoutTransferIntent[]
+  adjustments         PayoutAdjustment[]
+  auditEvents         FinancialAuditEvent[]
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status])
+  @@index([bookingId])
+}
+
+model SettlementRevision {
+  id                  String    @id @default(uuid())
+
+  settlementId        String
+  settlement          Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  revisionNumber      Int
+  reason              String    // INITIAL_CALCULATION, REFUND_CHANGE, POLICY_UPDATE, RECALCULATION
+
+  totalGrossPaise     BigInt
+  totalRefundedPaise  BigInt    @default(0)
+  totalNetPaise       BigInt
+
+  hostNetPaise        BigInt
+  coHostNetPaise      BigInt    @default(0)
+  platformNetPaise    BigInt
+  taxNetPaise         BigInt
+
+  isExecuted          Boolean   @default(false)
+
+  allocations         SettlementAllocation[]
+
+  createdAt           DateTime  @default(now())
+
+  @@unique([settlementId, revisionNumber])
+  @@index([settlementId])
+}
+
+model SettlementAllocation {
+  id                  String    @id @default(uuid())
+
+  revisionId          String
+  revision            SettlementRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+
+  recipientRole       String    // HOST, CO_HOST, PLATFORM, TAX_AUTHORITY
+  recipientUserId     String?
+  recipientUser       User?     @relation(fields: [recipientUserId], references: [id], onDelete: SetNull)
+
+  allocationKey       String    // e.g. "HOST:uuid", "CO_HOST:uuid", "PLATFORM:SYSTEM", "TAX:GST"
+
+  grossPaise          BigInt
+  refundDeductionPaise BigInt   @default(0)
+  netEntitledPaise    BigInt
+
+  status              String    @default("PENDING") // PENDING, ELIGIBLE, HELD, APPROVED, PROCESSING, PAID, ADJUSTED
+  holdReasons         String[]  @default([])
+
+  createdAt           DateTime  @default(now())
+
+  @@unique([revisionId, allocationKey])
+  @@index([revisionId])
+  @@index([recipientUserId])
+  @@index([status])
+}
+
+model PayoutTransferIntent {
+  id                  String    @id @default(uuid())
+
+  settlementId        String
+  settlement          Settlement @relation(fields: [settlementId], references: [id], onDelete: Restrict)
+
+  allocationKey       String
+  recipientUserId     String?
+  recipientUser       User?     @relation(fields: [recipientUserId], references: [id], onDelete: SetNull)
+
+  amountPaise         BigInt
+  currency            String    @default("INR")
+
+  operationReference  String    @unique // Durable reference for idempotency
+  status              String    @default("RESERVED") // RESERVED, SUBMITTED, COMPLETED, FAILED, UNKNOWN
+
+  beneficiaryDetails  Json?
+  provider            String    @default("MOCK_PROVIDER") // CASHFREE, MOCK_PROVIDER, etc.
+  providerTransferId  String?
+  providerResponse    Json?
+  failureReason       String?
+
+  attempts            PayoutTransferAttempt[]
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([settlementId])
+  @@index([recipientUserId])
+  @@index([status])
+}
+
+model PayoutTransferAttempt {
+  id                  String    @id @default(uuid())
+
+  transferIntentId    String
+  transferIntent      PayoutTransferIntent @relation(fields: [transferIntentId], references: [id], onDelete: Cascade)
+
+  attemptNumber       Int
+  idempotencyKey      String    @unique
+  providerReference   String?
+  status              String    // SUBMITTED, SUCCESS, FAILED, TIMEOUT, UNKNOWN
+  rawResponse         Json?
+
+  createdAt           DateTime  @default(now())
+
+  @@index([transferIntentId])
+  @@index([status])
+}
+
+model PayoutAdjustment {
+  id                  String    @id @default(uuid())
+
+  settlementId        String
+  settlement          Settlement @relation(fields: [settlementId], references: [id], onDelete: Restrict)
+
+  sourceEvent         String    // REFUND_POST_PAYOUT, CHARGEBACK, REVERSAL, MANUAL_AUDIT
+  sourceReferenceId   String?   // e.g. refundId
+  originalRevisionId  String?
+
+  affectedRecipientUserId String?
+  affectedRecipientRole   String // HOST, CO_HOST, PLATFORM
+
+  alreadyPaidPaise        BigInt
+  revisedEntitlementPaise BigInt
+  recoveryObligationPaise BigInt
+
+  status              String    @default("PENDING") // PENDING, OFFSET_APPLIED, RECOVERED, WAIVED
+  actorUserId         String?
+  evidenceNotes       String?
+  metadata            Json?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([settlementId])
+  @@index([affectedRecipientUserId])
+  @@index([status])
+}
+
+model FinancialAuditEvent {
+  id                  String    @id @default(uuid())
+
+  bookingId           String?
+  booking             Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  settlementId        String?
+  settlement          Settlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+
+  eventType           String    // SNAPSHOT_CREATED, REFUND_RESERVED, REFUND_COMPLETED, SETTLEMENT_CALCULATED, TRANSFER_INITIATED, TRANSFER_COMPLETED, TRANSFER_FAILED, ADJUSTMENT_RECORDED, HOLD_APPLIED, HOLD_RELEASED
+  actorId             String?
+  payload             Json?
+
+  createdAt           DateTime  @default(now())
+
+  @@index([bookingId])
+  @@index([settlementId])
+  @@index([eventType])
+}
+
+// ============================================================================
+// REELS MODULE MODELS & ENUMS
+// ============================================================================
+
+enum ReelStatus {
+  DRAFT
+  UPLOADING
+  PROCESSING
+  PUBLISHED
+  HIDDEN
+  REJECTED
+  ARCHIVED
+  FAILED
+}
+
+enum ReelReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model Reel {
+  id                  String         @id @default(uuid())
+
+  creatorId           String
+  creator             User           @relation("CreatedReels", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  videoUrl            String?
+  hlsUrl              String?
+  posterUrl           String?
+  cloudinaryPublicId String?
+
+  duration            Float?
+  width               Int?
+  height              Int?
+  format              String?
+
+  caption             String?
+  status              ReelStatus     @default(DRAFT)
+
+  viewCount           Int            @default(0)
+  likeCount           Int            @default(0)
+  commentCount        Int            @default(0)
+  rankingScore        Float          @default(0)
+
+  publishedAt         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  taggedListings      ReelListing[]
+  likes               ReelLike[]
+  comments            ReelComment[]
+  reports             ReelReport[]
+  analytics           ReelAnalytics?
+  viewSessions        ReelViewSession[]
+
+  @@index([status, createdAt, id])
+  @@index([status, publishedAt, id])
+  @@index([status, rankingScore, id])
+  @@index([creatorId, status, createdAt])
+}
+
+model ReelAnalytics {
+  id                    String   @id @default(uuid())
+
+  reelId                String   @unique
+  reel                  Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  views                 Int      @default(0)
+  uniqueViewers         Int      @default(0)
+  totalWatchDuration    Float    @default(0)
+  completions25         Int      @default(0)
+  completions50         Int      @default(0)
+  completions75         Int      @default(0)
+  completions100        Int      @default(0)
+  listingClicks         Int      @default(0)
+
+  updatedAt             DateTime @updatedAt
+
+  @@index([reelId])
+}
+
+model ReelViewSession {
+  id               String   @id @default(uuid())
+
+  reelId           String
+  reel             Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  sessionId        String
+  userId           String?
+
+  watchDuration    Float    @default(0)
+  maxMilestone     Int      @default(0)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([reelId, sessionId])
+  @@index([reelId, userId])
+  @@index([reelId, createdAt])
+}
+
+
+model ReelListing {
+  id          String    @id @default(uuid())
+
+  reelId      String
+  reel        Reel      @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  propertyId  String
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+
+  @@unique([reelId, propertyId])
+  @@index([reelId])
+  @@index([propertyId])
+}
+
+model ReelLike {
+  id        String    @id @default(uuid())
+
+  reelId    String
+  reel      Reel      @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User      @relation("UserReelLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+
+  @@unique([reelId, userId])
+  @@index([reelId])
+  @@index([userId])
+}
+
+model ReelComment {
+  id        String       @id @default(uuid())
+
+  reelId    String
+  reel      Reel         @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User         @relation("UserReelComments", fields: [userId], references: [id], onDelete: Cascade)
+
+  content   String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  reports   ReelReport[]
+
+  @@index([reelId, createdAt])
+  @@index([userId])
+}
+
+model ReelReport {
+  id          String           @id @default(uuid())
+
+  reelId      String
+  reel        Reel             @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  commentId   String?
+  comment     ReelComment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  reporterId  String
+  reporter    User             @relation("UserReelReports", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  reason      String
+  status      ReelReportStatus @default(PENDING)
+  resolvedAt  DateTime?
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([reelId])
+  @@index([commentId])
+  @@index([status, createdAt])
+  @@index([reporterId])
+}
+
+
+
+
+
+

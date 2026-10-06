@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-09-22T07:34:24.114Z",
+  "url": "http://localhost:3000",
+  "loadDurationMs": 4465,
+  "networkRequestsCount": 28,
+  "failedRequests": [],
+  "consoleMessages": [
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "warning",
+      "text": "Image with src \"/assets/logo-studioi.png\" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: \"auto\"' or 'height: \"auto\"' to maintain the aspect ratio."
+    },
+    {
+      "type": "warning",
+      "text": "Image with src \"/assets/avatar-rahul.jpg\" has \"fill\" but is missing \"sizes\" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes"
+    }
+  ]
+}
